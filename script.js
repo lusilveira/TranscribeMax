@@ -111,12 +111,35 @@ function updateTranscribeButtonState() {
     }
 }
 
+// Validar chave da API antes de fazer requisição
+function validateApiKeyFormat(apiKey) {
+    // Chaves da OpenAI começam com 'sk-'
+    if (!apiKey.startsWith('sk-')) {
+        throw new Error('Chave da API inválida. Deve começar com "sk-"');
+    }
+    
+    // Verificar comprimento mínimo
+    if (apiKey.length < 20) {
+        throw new Error('Chave da API muito curta. Verifique se copiou corretamente.');
+    }
+    
+    return true;
+}
+
 // Iniciar transcrição
 async function startTranscription() {
     const apiKey = document.getElementById('apiKey').value.trim();
     
     if (!apiKey) {
         showError('Por favor, insira sua chave da API OpenAI.');
+        return;
+    }
+
+    // Validar formato da chave
+    try {
+        validateApiKeyFormat(apiKey);
+    } catch (error) {
+        showError(error.message);
         return;
     }
 
@@ -147,18 +170,49 @@ async function startTranscription() {
             formData.append('language', language);
         }
 
-        // Fazer requisição para API
+        // Headers mais específicos para evitar CORS
+        const headers = {
+            'Authorization': `Bearer ${apiKey}`,
+            // Removido Content-Type para que o browser configure automaticamente
+        };
+
+        // Fazer requisição para API com configurações otimizadas
         const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: formData
+            headers: headers,
+            body: formData,
+            // Adicionar mode para lidar com CORS
+            mode: 'cors',
+            credentials: 'omit'
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || `Erro na API: ${response.status}`);
+            let errorMessage = `Erro na API: ${response.status}`;
+            
+            // Mensagens específicas por código de erro
+            switch (response.status) {
+                case 401:
+                    errorMessage = 'Chave da API inválida ou sem permissão. Verifique sua chave da OpenAI.';
+                    break;
+                case 402:
+                    errorMessage = 'Créditos insuficientes na sua conta OpenAI. Adicione créditos em platform.openai.com';
+                    break;
+                case 429:
+                    errorMessage = 'Muitas requisições. Aguarde alguns minutos e tente novamente.';
+                    break;
+                case 413:
+                    errorMessage = 'Arquivo muito grande para a API. Tente um arquivo menor.';
+                    break;
+                default:
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error?.message || errorMessage;
+                    } catch (e) {
+                        // Se não conseguir ler o JSON do erro, usar mensagem padrão
+                    }
+            }
+            
+            throw new Error(errorMessage);
         }
 
         const result = await response.json();
@@ -169,7 +223,14 @@ async function startTranscription() {
 
     } catch (error) {
         console.error('Erro na transcrição:', error);
-        showError(`Erro na transcrição: ${error.message}`);
+        
+        // Tratamento específico para diferentes tipos de erro
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            showError('Erro de conexão. Verifique sua internet e tente usar um servidor local (não abra o arquivo diretamente).');
+        } else {
+            showError(`Erro na transcrição: ${error.message}`);
+        }
+        
         progressSection.style.display = 'none';
     } finally {
         transcribeBtn.disabled = false;
@@ -292,10 +353,10 @@ function showError(message) {
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
     
-    // Auto-esconder após 5 segundos
+    // Auto-esconder após 8 segundos para erros mais longos
     setTimeout(() => {
         hideError();
-    }, 5000);
+    }, 8000);
 }
 
 // Esconder mensagem de erro
