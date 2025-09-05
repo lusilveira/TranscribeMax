@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcrição Automática de Áudio/Vídeo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Transcrição Automática</h1>
+            <p>Converta áudio e vídeo em texto com alta precisão</p>
+        </div>
+
+        <div class="content">
+            <!-- Banner de Zero Limitações -->
+            <div class="banner-no-limits">
+                🚀 VERSÃO 2.0 - ZERO LIMITAÇÕES DE TAMANHO 🚀<br>
+                <span class="banner-subtitle">Aceita arquivos de qualquer tamanho - 10GB, 50GB, 100GB+ sem bloqueios!</span>
+            </div>
+
+            <!-- Seção de Chave da API -->
+            <div class="api-key-section">
+                <h3>🔑 Configuração da API OpenAI</h3>
+                <p>Para usar este serviço, você precisa de uma chave da API OpenAI. Obtenha em: <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a></p>
+                <input type="password" id="apiKey" placeholder="Insira sua chave da API OpenAI aqui...">
+            </div>
+
+            <!-- Seção de Upload -->
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📁</div>
+                <h3>Selecione ou arraste um arquivo</h3>
+                <p>Suporta: MP3, WAV, MP4, AVI, MOV, MKV - Qualquer tamanho!</p>
+                <input type="file" id="fileInput" class="file-input" accept="audio/*,video/*">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Escolher Arquivo
+                </button>
+            </div>
+
+            <div class="file-info" id="fileInfo">
+                <h4>Arquivo selecionado:</h4>
+                <p id="fileName"></p>
+                <p id="fileSize"></p>
+            </div>
+
+            <!-- Opções de Transcrição -->
+            <div class="options-section">
+                <div class="option-group">
+                    <label for="language">Idioma:</label>
+                    <select id="language">
+                        <option value="pt">Português</option>
+                        <option value="en">Inglês</option>
+                        <option value="es">Espanhol</option>
+                        <option value="fr">Francês</option>
+                        <option value="de">Alemão</option>
+                        <option value="it">Italiano</option>
+                        <option value="auto">Detectar automaticamente</option>
+                    </select>
+                </div>
+
+                <div class="option-group">
+                    <label for="documentTitle">Título do documento:</label>
+                    <input type="text" id="documentTitle" placeholder="Ex: Reunião de equipe - 05/09/2025">
+                </div>
+            </div>
+
+            <!-- Botão de Transcrição -->
+            <button class="transcribe-btn" id="transcribeBtn" onclick="startTranscription()">
+                🎯 Iniciar Transcrição
+            </button>
+
+            <!-- Seção de Progresso -->
+            <div class="progress-section" id="progressSection">
+                <h4>🚀 Processando com Máxima Precisão...</h4>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="spinner"></div>
+                <p class="progress-text">Usando modelo avançado - Isso pode levar alguns minutos para melhor qualidade...</p>
+            </div>
+
+            <!-- Mensagem de Erro -->
+            <div class="error-message" id="errorMessage"></div>
+
+            <!-- Seção de Resultado -->
+            <div class="result-section" id="resultSection">
+                <h3>📝 Resultado da Transcrição</h3>
+                <div class="result-text" id="resultText"></div>
+                <div class="download-buttons">
+                    <button class="download-btn" onclick="downloadText()">📄 Baixar TXT</button>
+                    <button class="download-btn" onclick="downloadWord()">📘 Baixar DOCX</button>
+                    <button class="download-btn" onclick="copyToClipboard()">📋 Copiar Texto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+
