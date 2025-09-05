@@ -3,28 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transcrição Automática de Áudio/Vídeo</title>
+    <title>TranscribeMax - Transcrição GRATUITA</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎵 Transcrição Automática</h1>
-            <p>Converta áudio e vídeo em texto com alta precisão</p>
+            <h1>🎵 TranscribeMax GRATUITO</h1>
+            <p>Transcrição de áudio e vídeo 100% gratuita usando seu navegador</p>
         </div>
 
         <div class="content">
-            <!-- Banner de Zero Limitações -->
+            <!-- Banner GRATUITO -->
             <div class="banner-no-limits">
-                🚀 VERSÃO 2.0 - ZERO LIMITAÇÕES DE TAMANHO 🚀<br>
-                <span class="banner-subtitle">Aceita arquivos de qualquer tamanho - 10GB, 50GB, 100GB+ sem bloqueios!</span>
+                🆓 VERSÃO 100% GRATUITA 🆓<br>
+                <span class="banner-subtitle">Sem APIs pagas, sem créditos, sem limitações! Funciona no seu navegador.</span>
             </div>
 
-            <!-- Seção de Chave da API -->
-            <div class="api-key-section">
-                <h3>🔑 Configuração da API OpenAI</h3>
-                <p>Para usar este serviço, você precisa de uma chave da API OpenAI. Obtenha em: <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a></p>
-                <input type="password" id="apiKey" placeholder="Insira sua chave da API OpenAI aqui...">
+            <!-- Como Funciona -->
+            <div style="background: #e3f2fd; border: 2px solid #2196f3; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                <h3 style="color: #1976d2; margin-bottom: 10px;">🎤 Como Funciona (GRATUITO):</h3>
+                <ol style="color: #1976d2; margin-left: 20px;">
+                    <li>Selecione seu arquivo de áudio/vídeo</li>
+                    <li>Permita acesso ao microfone quando solicitado</li>
+                    <li>Reproduza o áudio em volume audível</li>
+                    <li>O sistema captura e transcreve em tempo real</li>
+                </ol>
+                <p style="color: #1976d2; margin-top: 10px; font-size: 0.9em;">
+                    <strong>📋 Requisitos:</strong> Chrome, Edge ou Safari + Microfone + Audio em volume adequado
+                </p>
             </div>
 
             <!-- Seção de Upload -->
@@ -49,13 +56,12 @@
                 <div class="option-group">
                     <label for="language">Idioma:</label>
                     <select id="language">
-                        <option value="pt">Português</option>
-                        <option value="en">Inglês</option>
+                        <option value="pt">Português (Brasil)</option>
+                        <option value="en">Inglês (EUA)</option>
                         <option value="es">Espanhol</option>
                         <option value="fr">Francês</option>
                         <option value="de">Alemão</option>
                         <option value="it">Italiano</option>
-                        <option value="auto">Detectar automaticamente</option>
                     </select>
                 </div>
 
@@ -66,18 +72,18 @@
             </div>
 
             <!-- Botão de Transcrição -->
-            <button class="transcribe-btn" id="transcribeBtn" onclick="startTranscription()">
-                🎯 Iniciar Transcrição
+            <button class="transcribe-btn" id="transcribeBtn" onclick="startTranscription()" disabled>
+                🎯 Selecione um arquivo primeiro
             </button>
 
             <!-- Seção de Progresso -->
             <div class="progress-section" id="progressSection">
-                <h4>🚀 Processando com Máxima Precisão...</h4>
+                <h4>🎤 Reproduzindo áudio para capturar...</h4>
                 <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
+                    <div class="progress-fill" id="progressFill" style="width: 100%; background: linear-gradient(90deg, #4caf50, #8bc34a);"></div>
                 </div>
-                <div class="spinner"></div>
-                <p class="progress-text">Usando modelo avançado - Isso pode levar alguns minutos para melhor qualidade...</p>
+                <p class="progress-text">Reproduza o áudio em volume audível para o microfone capturar e transcrever.</p>
+                <!-- Player de áudio será adicionado aqui dinamicamente -->
             </div>
 
             <!-- Mensagem de Erro -->
@@ -93,11 +99,21 @@
                     <button class="download-btn" onclick="copyToClipboard()">📋 Copiar Texto</button>
                 </div>
             </div>
+
+            <!-- Dicas de Uso -->
+            <div style="background: #f8f9fa; border-radius: 10px; padding: 20px; margin-top: 20px;">
+                <h3 style="color: #495057; margin-bottom: 15px;">💡 Dicas para Melhor Qualidade:</h3>
+                <ul style="color: #6c757d; margin-left: 20px;">
+                    <li><strong>Volume adequado:</strong> Reproduza o áudio em volume médio-alto</li>
+                    <li><strong>Ambiente silencioso:</strong> Minimize ruídos externos</li>
+                    <li><strong>Áudio claro:</strong> Qualidade do arquivo influencia na transcrição</li>
+                    <li><strong>Pausas:</strong> Pause e retome a transcrição conforme necessário</li>
+                    <li><strong>Navegador:</strong> Use Chrome ou Edge para melhor performance</li>
+                </ul>
+            </div>
         </div>
     </div>
 
     <script src="script.js"></script>
 </body>
 </html>
-
-

@@ -1,17 +1,39 @@
 // Variáveis globais
 let selectedFile = null;
 let transcriptionResult = '';
+let recognition = null;
+let audioElement = null;
+let isTranscribing = false;
 
 // Inicialização quando o DOM carregar
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
+    checkSpeechRecognitionSupport();
 });
+
+// Verificar suporte para Speech Recognition
+function checkSpeechRecognitionSupport() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+        showError('Seu navegador não suporta reconhecimento de fala. Use Chrome, Edge ou Safari mais recente.');
+        return false;
+    }
+    
+    // Configurar reconhecimento de fala
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'pt-BR'; // Padrão português
+    
+    return true;
+}
 
 // Configurar todos os event listeners
 function initializeEventListeners() {
     const uploadSection = document.getElementById('uploadSection');
     const fileInput = document.getElementById('fileInput');
-    const apiKeyInput = document.getElementById('apiKey');
+    const languageSelect = document.getElementById('language');
 
     // Drag and drop events
     uploadSection.addEventListener('dragover', handleDragOver);
@@ -21,8 +43,32 @@ function initializeEventListeners() {
     // File input change
     fileInput.addEventListener('change', handleFileInputChange);
 
-    // API key validation
-    apiKeyInput.addEventListener('input', validateApiKey);
+    // Language change
+    languageSelect.addEventListener('change', updateRecognitionLanguage);
+    
+    // Remover seção da API key já que não precisamos mais
+    const apiKeySection = document.querySelector('.api-key-section');
+    if (apiKeySection) {
+        apiKeySection.style.display = 'none';
+    }
+}
+
+// Atualizar idioma do reconhecimento
+function updateRecognitionLanguage() {
+    const language = document.getElementById('language').value;
+    const langMap = {
+        'pt': 'pt-BR',
+        'en': 'en-US',
+        'es': 'es-ES',
+        'fr': 'fr-FR',
+        'de': 'de-DE',
+        'it': 'it-IT',
+        'auto': 'pt-BR' // Padrão para auto
+    };
+    
+    if (recognition) {
+        recognition.lang = langMap[language] || 'pt-BR';
+    }
 }
 
 // Handlers para drag and drop
@@ -78,7 +124,11 @@ function handleFileSelection(file) {
     document.getElementById('documentTitle').value = `Transcrição: ${baseName}`;
 
     hideError();
-    updateTranscribeButtonState();
+    
+    // Ativar botão de transcrição
+    const transcribeBtn = document.getElementById('transcribeBtn');
+    transcribeBtn.style.opacity = '1';
+    transcribeBtn.disabled = false;
 }
 
 // Formatar tamanho do arquivo
@@ -94,57 +144,15 @@ function formatFileSize(bytes) {
     }
 }
 
-// Validar chave da API
-function validateApiKey() {
-    updateTranscribeButtonState();
-}
-
-// Atualizar estado do botão de transcrição
-function updateTranscribeButtonState() {
-    const apiKey = document.getElementById('apiKey').value.trim();
-    const transcribeBtn = document.getElementById('transcribeBtn');
-    
-    if (apiKey && selectedFile) {
-        transcribeBtn.style.opacity = '1';
-    } else {
-        transcribeBtn.style.opacity = '0.6';
-    }
-}
-
-// Validar chave da API antes de fazer requisição
-function validateApiKeyFormat(apiKey) {
-    // Chaves da OpenAI começam com 'sk-'
-    if (!apiKey.startsWith('sk-')) {
-        throw new Error('Chave da API inválida. Deve começar com "sk-"');
-    }
-    
-    // Verificar comprimento mínimo
-    if (apiKey.length < 20) {
-        throw new Error('Chave da API muito curta. Verifique se copiou corretamente.');
-    }
-    
-    return true;
-}
-
-// Iniciar transcrição
+// Iniciar transcrição GRATUITA
 async function startTranscription() {
-    const apiKey = document.getElementById('apiKey').value.trim();
-    
-    if (!apiKey) {
-        showError('Por favor, insira sua chave da API OpenAI.');
-        return;
-    }
-
-    // Validar formato da chave
-    try {
-        validateApiKeyFormat(apiKey);
-    } catch (error) {
-        showError(error.message);
-        return;
-    }
-
     if (!selectedFile) {
         showError('Por favor, selecione um arquivo primeiro.');
+        return;
+    }
+
+    if (!recognition) {
+        showError('Reconhecimento de fala não suportado. Use Chrome, Edge ou Safari.');
         return;
     }
 
@@ -153,117 +161,149 @@ async function startTranscription() {
     
     // Desabilitar botão e mostrar progresso
     transcribeBtn.disabled = true;
+    isTranscribing = true;
     progressSection.style.display = 'block';
     hideError();
 
     try {
-        // Simular progresso
-        animateProgress();
+        // Atualizar texto de progresso
+        document.querySelector('.progress-section h4').textContent = '🎤 Reproduzindo áudio para capturar...';
+        document.querySelector('.progress-text').textContent = 'Reproduza o áudio em volume audível para o microfone capturar e transcrever.';
 
-        // Preparar dados para envio
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('model', 'whisper-1');
+        // Criar elemento de áudio
+        audioElement = document.createElement('audio');
+        audioElement.controls = true;
+        audioElement.style.width = '100%';
+        audioElement.style.marginBottom = '20px';
         
-        const language = document.getElementById('language').value;
-        if (language !== 'auto') {
-            formData.append('language', language);
-        }
-
-        // Headers mais específicos para evitar CORS
-        const headers = {
-            'Authorization': `Bearer ${apiKey}`,
-            // Removido Content-Type para que o browser configure automaticamente
-        };
-
-        // Fazer requisição para API com configurações otimizadas
-        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-            method: 'POST',
-            headers: headers,
-            body: formData,
-            // Adicionar mode para lidar com CORS
-            mode: 'cors',
-            credentials: 'omit'
-        });
-
-        if (!response.ok) {
-            let errorMessage = `Erro na API: ${response.status}`;
-            
-            // Mensagens específicas por código de erro
-            switch (response.status) {
-                case 401:
-                    errorMessage = 'Chave da API inválida ou sem permissão. Verifique sua chave da OpenAI.';
-                    break;
-                case 402:
-                    errorMessage = 'Créditos insuficientes na sua conta OpenAI. Adicione créditos em platform.openai.com';
-                    break;
-                case 429:
-                    errorMessage = 'Muitas requisições. Aguarde alguns minutos e tente novamente.';
-                    break;
-                case 413:
-                    errorMessage = 'Arquivo muito grande para a API. Tente um arquivo menor.';
-                    break;
-                default:
-                    try {
-                        const errorData = await response.json();
-                        errorMessage = errorData.error?.message || errorMessage;
-                    } catch (e) {
-                        // Se não conseguir ler o JSON do erro, usar mensagem padrão
-                    }
-            }
-            
-            throw new Error(errorMessage);
-        }
-
-        const result = await response.json();
-        transcriptionResult = result.text;
-
-        // Mostrar resultado
-        displayTranscriptionResult();
+        // Criar URL do arquivo
+        const audioUrl = URL.createObjectURL(selectedFile);
+        audioElement.src = audioUrl;
+        
+        // Adicionar player de áudio à seção de progresso
+        progressSection.appendChild(audioElement);
+        
+        // Configurar eventos do reconhecimento
+        setupSpeechRecognition();
+        
+        // Iniciar reconhecimento
+        recognition.start();
+        
+        showSuccessMessage('Reconhecimento iniciado! Reproduza o áudio para transcrever.');
 
     } catch (error) {
         console.error('Erro na transcrição:', error);
-        
-        // Tratamento específico para diferentes tipos de erro
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            showError('Erro de conexão. Verifique sua internet e tente usar um servidor local (não abra o arquivo diretamente).');
-        } else {
-            showError(`Erro na transcrição: ${error.message}`);
-        }
-        
+        showError(`Erro na transcrição: ${error.message}`);
         progressSection.style.display = 'none';
-    } finally {
         transcribeBtn.disabled = false;
+        isTranscribing = false;
     }
 }
 
-// Exibir resultado da transcrição
-function displayTranscriptionResult() {
-    document.getElementById('resultText').textContent = transcriptionResult;
-    document.getElementById('resultSection').style.display = 'block';
-    document.getElementById('progressSection').style.display = 'none';
+// Configurar eventos do reconhecimento de fala
+function setupSpeechRecognition() {
+    let finalTranscript = '';
+    let interimTranscript = '';
+
+    recognition.onresult = function(event) {
+        interimTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript + ' ';
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+        
+        // Atualizar resultado em tempo real
+        transcriptionResult = finalTranscript + interimTranscript;
+        updateTranscriptionPreview(transcriptionResult);
+    };
+
+    recognition.onerror = function(event) {
+        console.error('Erro no reconhecimento:', event.error);
+        
+        let errorMessage = 'Erro no reconhecimento de fala.';
+        switch (event.error) {
+            case 'no-speech':
+                errorMessage = 'Nenhuma fala detectada. Verifique se o áudio está sendo reproduzido.';
+                break;
+            case 'audio-capture':
+                errorMessage = 'Erro ao capturar áudio. Verifique as permissões do microfone.';
+                break;
+            case 'not-allowed':
+                errorMessage = 'Permissão negada para usar o microfone.';
+                break;
+        }
+        
+        showError(errorMessage);
+    };
+
+    recognition.onend = function() {
+        if (isTranscribing) {
+            // Reiniciar automaticamente se ainda estiver transcrevendo
+            try {
+                recognition.start();
+            } catch (e) {
+                console.log('Reconhecimento finalizado');
+            }
+        }
+    };
 }
 
-// Animação de progresso
-function animateProgress() {
-    const progressFill = document.getElementById('progressFill');
-    let progress = 0;
+// Atualizar preview da transcrição em tempo real
+function updateTranscriptionPreview(text) {
+    let resultSection = document.getElementById('resultSection');
     
-    const interval = setInterval(() => {
-        progress += Math.random() * 10;
-        if (progress > 90) {
-            clearInterval(interval);
-            progress = 90;
-        }
-        progressFill.style.width = progress + '%';
-    }, 500);
+    if (resultSection.style.display === 'none') {
+        resultSection.style.display = 'block';
+    }
+    
+    document.getElementById('resultText').textContent = text || 'Aguardando fala...';
+}
+
+// Parar transcrição
+function stopTranscription() {
+    if (recognition) {
+        recognition.stop();
+    }
+    
+    isTranscribing = false;
+    
+    const transcribeBtn = document.getElementById('transcribeBtn');
+    transcribeBtn.disabled = false;
+    transcribeBtn.textContent = '🎯 Iniciar Transcrição';
+    
+    document.getElementById('progressSection').style.display = 'none';
+    
+    if (audioElement) {
+        audioElement.pause();
+    }
+    
+    showSuccessMessage('Transcrição finalizada!');
+}
+
+// Atualizar botão para permitir parar
+function updateTranscriptionButton() {
+    const transcribeBtn = document.getElementById('transcribeBtn');
+    
+    if (isTranscribing) {
+        transcribeBtn.textContent = '⏹️ Parar Transcrição';
+        transcribeBtn.onclick = stopTranscription;
+    } else {
+        transcribeBtn.textContent = '🎯 Iniciar Transcrição';
+        transcribeBtn.onclick = startTranscription;
+    }
 }
 
 // Download como TXT
 function downloadText() {
     const title = document.getElementById('documentTitle').value || 'transcricao';
     const timestamp = new Date().toLocaleString('pt-BR');
-    const content = `${title}\nGerado em: ${timestamp}\n\n${transcriptionResult}`;
+    const content = `${title}\nGerado em: ${timestamp}\nMétodo: Reconhecimento de Fala (Gratuito)\n\n${transcriptionResult}`;
     
     downloadFile(content, `${sanitizeFilename(title)}.txt`, 'text/plain;charset=utf-8');
 }
@@ -276,7 +316,8 @@ function downloadWord() {
     const rtfContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Calibri;}}
     {\\colortbl;\\red0\\green0\\blue128;}
     \\f0\\fs28\\cf1\\b ${title}\\b0\\par
-    \\fs20 Gerado em: ${timestamp}\\par\\par
+    \\fs20 Gerado em: ${timestamp}\\par
+    \\fs18 Método: Reconhecimento de Fala (Gratuito)\\par\\par
     \\fs22 ${transcriptionResult.replace(/\n/g, '\\par ')}
     }`;
     
@@ -353,7 +394,7 @@ function showError(message) {
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
     
-    // Auto-esconder após 8 segundos para erros mais longos
+    // Auto-esconder após 8 segundos
     setTimeout(() => {
         hideError();
     }, 8000);
@@ -392,4 +433,7 @@ function showSuccessMessage(message) {
             successDiv.parentNode.removeChild(successDiv);
         }
     }, 3000);
+
+    // Atualizar botão se necessário
+    updateTranscriptionButton();
 }
